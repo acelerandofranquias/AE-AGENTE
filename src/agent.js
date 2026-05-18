@@ -2,7 +2,7 @@
 require('dotenv').config();
 const Anthropic = require('@anthropic-ai/sdk');
 const { SYSTEM_PROMPT } = require('./prompt');
-const { getHistory, addMessage, getLeadSummary } = require('./memory');
+const { getHistory, addMessage, getLeadSummary, setSpecialistActive } = require('./memory');
 const { sendText, sendDocumentBase64, sendImage, sendAudio } = require('./zapi');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -128,6 +128,9 @@ async function processMessage(phone, userMessage) {
             `Ele vai entrar em contato ${nextBusinessDayMessage()}. 😊`
           );
         }
+        // Agente se silencia automaticamente após transferir
+        await setSpecialistActive(phone);
+        console.log(`[Agent] Agente silenciado para ${phone} após transferência`);
       }
     }
 

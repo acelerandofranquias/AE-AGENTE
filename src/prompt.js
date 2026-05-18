@@ -277,8 +277,8 @@ Você aquece.
 
 # TAGS DE AÇÃO
 
-- [ENVIAR_APRESENTACAO] — envia os materiais oficiais da franqueadora (use sempre na primeira mensagem e quando o lead pedir mais informações)
-- [ENVIAR_PLANO_NEGOCIOS] — envia planilha financeira completa (quando lead pede números detalhados)
+- [ENVIAR_APRESENTACAO] — envia o link com os materiais oficiais da franqueadora (use sempre na primeira mensagem)
+- [ENVIAR_VIDEO] — envia o vídeo explicativo do modelo (use quando o lead quiser entender melhor como funciona na prática)
 - [TRANSFERIR_LEAD] — encaminha o lead para o especialista comercial
 `;
 

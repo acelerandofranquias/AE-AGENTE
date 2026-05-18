@@ -1,7 +1,5 @@
 // agent.js - Lógica principal do agente Lia
 require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
 const { SYSTEM_PROMPT } = require('./prompt');
 const { getHistory, addMessage, getLeadSummary } = require('./memory');
@@ -20,8 +18,8 @@ async function processActions(phone, responseText) {
     actions.push('enviar_apresentacao');
   }
 
-  if (responseText.includes('[ENVIAR_PLANO_NEGOCIOS]')) {
-    actions.push('enviar_plano');
+  if (responseText.includes('[ENVIAR_VIDEO]')) {
+    actions.push('enviar_video');
   }
 
   if (responseText.includes('[TRANSFERIR_LEAD]')) {
@@ -30,44 +28,23 @@ async function processActions(phone, responseText) {
 
   const cleanText = responseText
     .replace(/\[ENVIAR_APRESENTACAO\]/g, '')
-    .replace(/\[ENVIAR_PLANO_NEGOCIOS\]/g, '')
+    .replace(/\[ENVIAR_VIDEO\]/g, '')
     .replace(/\[TRANSFERIR_LEAD\]/g, '')
     .trim();
 
   return { cleanText, actions };
 }
 
-// Envia apresentação e vídeo (estágio inicial)
+// Envia os materiais oficiais (link da franqueadora)
 async function sendMaterials(phone) {
-  await sendText(phone, '📎 Vou te enviar os materiais agora. Um momento...');
-
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  await sendText(phone, `📋 Aqui está a apresentação completa da AE Alugue Estética:\n${MATERIALS_URL}`);
-
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  await sendText(phone, `🎥 E esse vídeo mostra como funciona na prática:\n${VIDEO_URL}`);
-
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  await sendText(phone, '✅ Materiais enviados! Qualquer dúvida sobre o que leu, pode perguntar aqui. 😊');
+  await new Promise(resolve => setTimeout(resolve, 800));
+  await sendText(phone, `Aqui estão os materiais oficiais 👇\n${MATERIALS_URL}`);
 }
 
-// Envia o Plano de Negócios (estágio avançado)
-async function sendBusinessPlan(phone) {
-  await sendText(phone, '📊 Vou te enviar o Plano de Negócios completo agora...');
-
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  try {
-    const filePath = path.join(__dirname, '..', 'docs', 'plano-negocios.pdf');
-    const buffer = fs.readFileSync(filePath);
-    const base64 = `data:application/pdf;base64,${buffer.toString('base64')}`;
-    await sendDocumentBase64(phone, base64, 'PN_AE_Alugue_Estetica_ModStart.pdf', '📊 Plano de Negócios — Módulo Start');
-  } catch (err) {
-    console.error('[Agent] Erro ao enviar plano de negócios:', err.message);
-    await sendText(phone, 'Tive um problema técnico ao enviar o arquivo. Pode pedir para nossa equipe te enviar diretamente. 🙏');
-  }
-
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  await sendText(phone, '✅ Plano de Negócios enviado! Quer que eu explique alguma projeção específica? 😊');
+// Envia o vídeo explicativo (quando lead quer saber mais)
+async function sendVideo(phone) {
+  await new Promise(resolve => setTimeout(resolve, 800));
+  await sendText(phone, `Esse vídeo mostra como funciona na prática 👇\n${VIDEO_URL}`);
 }
 
 // Notifica o especialista sobre o lead quente com resumo completo da conversa
@@ -133,8 +110,8 @@ async function processMessage(phone, userMessage) {
         await sendMaterials(phone);
       }
 
-      if (action === 'enviar_plano') {
-        await sendBusinessPlan(phone);
+      if (action === 'enviar_video') {
+        await sendVideo(phone);
       }
 
       if (action === 'transferir') {

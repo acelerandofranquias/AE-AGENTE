@@ -33,10 +33,11 @@ async function clearHistory(phone) {
   await redis.del(key(phone));
 }
 
-async function getLeadSummary(phone) {
+async function getLeadSummary(phone, maxMessages = 10) {
   const history = await getHistory(phone);
-  return history
-    .map(m => `${m.role === 'user' ? 'Lead' : 'Lia'}: ${m.content}`)
+  const recent = history.slice(-maxMessages);
+  return recent
+    .map(m => `${m.role === 'user' ? 'Lead' : 'Agente'}: ${m.content.substring(0, 300)}`)
     .join('\n');
 }
 

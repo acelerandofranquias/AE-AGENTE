@@ -2,7 +2,7 @@
 require('dotenv').config();
 const Anthropic = require('@anthropic-ai/sdk');
 const { SYSTEM_PROMPT } = require('./prompt');
-const { getHistory, addMessage, getLeadSummary, setSpecialistActive } = require('./memory');
+const { getHistory, addMessage, getLeadSummary, setSpecialistActive, isSpecialistActive } = require('./memory');
 const { sendText, sendDocumentBase64, sendImage, sendAudio } = require('./zapi');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -47,23 +47,26 @@ async function sendVideo(phone) {
   await sendText(phone, `Esse vídeo mostra como funciona na prática 👇\n${VIDEO_URL}`);
 }
 
-// Notifica o especialista sobre o lead quente com resumo completo da conversa
-async function notifySpecialist(leadPhone) {
+// Envia resumo compacto ao especialista e silencia o agente para esse lead
+async function transferToSpecialist(leadPhone) {
   const specialistPhone = process.env.SPECIALIST_PHONE;
-  const specialistName = process.env.SPECIALIST_NAME || 'Consultor';
-  const summary = await getLeadSummary(leadPhone);
+  if (!specialistPhone) {
+    console.error('[Agent] SPECIALIST_PHONE não configurado');
+    return;
+  }
 
+  const summary = await getLeadSummary(leadPhone, 10);
   const hora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
   const notification =
-    `🔥 *LEAD QUENTE — ${process.env.BRAND_NAME || 'Alugue Estética'}*\n\n` +
-    `📱 *Contato:* ${leadPhone}\n` +
-    `🕐 *Transferido em:* ${hora}\n\n` +
-    `📝 *Histórico completo da conversa:*\n\n${summary}\n\n` +
-    `---\n⚡ Lead qualificado pelo agente. Pronto para atendimento.`;
+    `🔥 *LEAD — ${process.env.BRAND_NAME || 'Alugue Estética'}*\n\n` +
+    `📱 *Contato:* wa.me/${leadPhone}\n` +
+    `🕐 *Transferido:* ${hora}\n\n` +
+    `💬 *Últimas mensagens:*\n\n${summary}`;
 
   await sendText(specialistPhone, notification);
-  console.log(`[Agent] Especialista ${specialistName} notificado — lead ${leadPhone}`);
+  await setSpecialistActive(leadPhone);
+  console.log(`[Agent] Lead ${leadPhone} transferido — agente silenciado`);
 }
 
 // Função principal — processa mensagem do lead
@@ -115,7 +118,6 @@ async function processMessage(phone, userMessage) {
       }
 
       if (action === 'transferir') {
-        await notifySpecialist(phone);
         if (isBusinessHours()) {
           await sendText(phone,
             `✨ Já avisei nosso especialista sobre nossa conversa!\n` +
@@ -128,9 +130,7 @@ async function processMessage(phone, userMessage) {
             `Ele vai entrar em contato ${nextBusinessDayMessage()}. 😊`
           );
         }
-        // Agente se silencia automaticamente após transferir
-        await setSpecialistActive(phone);
-        console.log(`[Agent] Agente silenciado para ${phone} após transferência`);
+        await transferToSpecialist(phone);
       }
     }
 
@@ -180,4 +180,4 @@ function splitMessage(text, maxLength = 1000) {
   return parts;
 }
 
-module.exports = { processMessage };
+module.exports = { processMessage, transferToSpecialist };

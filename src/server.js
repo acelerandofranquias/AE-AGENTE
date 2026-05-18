@@ -1,9 +1,9 @@
 // server.js - Servidor principal
 require('dotenv').config();
 const express = require('express');
-const { processMessage } = require('./agent');
+const { processMessage, transferToSpecialist } = require('./agent');
 const { checkConnection } = require('./zapi');
-const { isSpecialistActive, setSpecialistActive, clearSpecialistActive } = require('./memory');
+const { isSpecialistActive, clearSpecialistActive } = require('./memory');
 
 const app = express();
 app.use(express.json());
@@ -25,9 +25,9 @@ app.post('/webhook', async (req, res) => {
 
     // Mensagem enviada pelo próprio número = especialista assumiu
     if (body.fromMe) {
-      if (body.phone) {
-        await setSpecialistActive(body.phone);
-        console.log(`[Server] Especialista detectado para ${body.phone} — agente silenciado`);
+      if (body.phone && !await isSpecialistActive(body.phone)) {
+        await transferToSpecialist(body.phone);
+        console.log(`[Server] Especialista detectado via fromMe para ${body.phone}`);
       }
       return;
     }
@@ -116,9 +116,9 @@ app.get('/health', async (req, res) => {
 // ============================================
 app.get('/pausar/:phone', async (req, res) => {
   const { phone } = req.params;
-  await setSpecialistActive(phone);
-  console.log(`[Server] Agente pausado para ${phone}`);
-  res.send(`<h2>✅ Agente pausado para ${phone}</h2><p>O agente não vai mais responder a esse número. <a href="/reativar/${phone}">Clique aqui para reativar.</a></p>`);
+  await transferToSpecialist(phone);
+  console.log(`[Server] Agente pausado via link para ${phone}`);
+  res.send(`<h2>✅ Agente pausado para ${phone}</h2><p>Resumo enviado ao especialista. <a href="/reativar/${phone}">Clique aqui para reativar.</a></p>`);
 });
 
 app.get('/reativar/:phone', async (req, res) => {

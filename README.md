@@ -53,6 +53,47 @@ Copie `.env.example` para `.env` e preencha:
 3. **Não** adicione `PORT` — o Railway injeta automaticamente
 4. Configure o webhook na Z-API: `https://SEU_APP.up.railway.app/webhook`
 
+## Links de controle do agente
+
+Use esses links no navegador para controlar o agente por número de lead.  
+O número deve ter DDI + DDD + número, sem `+`, sem espaços, sem traços.
+
+**Domínio de produção:** `https://ae-agente-production.up.railway.app`
+
+---
+
+### Resetar conversa (para testes)
+Apaga o histórico completo e remove o flag de especialista. O lead voltará a ser atendido como se fosse a primeira mensagem.
+
+```
+https://ae-agente-production.up.railway.app/resetar/5514996011482
+```
+
+---
+
+### Pausar agente (especialista assume)
+Para o agente de responder aquele número e envia o resumo da conversa ao especialista.
+
+```
+https://ae-agente-production.up.railway.app/pausar/5514996011482
+```
+
+---
+
+### Reativar agente
+Devolve o número ao agente sem apagar o histórico.
+
+```
+https://ae-agente-production.up.railway.app/reativar/5514996011482
+```
+
+---
+
+> **Formato do número:** DDI + DDD + número sem espaços.  
+> Exemplo: Brasil, DDD 14, número 99601-1482 → `5514996011482`
+
+---
+
 ## Tags de ação (dentro da resposta do Claude)
 
 - `[ENVIAR_APRESENTACAO]` — dispara envio dos 3 PDFs ao lead

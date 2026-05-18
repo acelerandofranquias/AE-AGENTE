@@ -1,9 +1,11 @@
 // agent.js - Lógica principal do agente Lia
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
 const { SYSTEM_PROMPT } = require('./prompt');
 const { getHistory, addMessage, getLeadSummary } = require('./memory');
-const { sendText, sendImage, sendAudio, sendVideo } = require('./zapi');
+const { sendText, sendDocumentBase64, sendImage, sendAudio, sendVideo } = require('./zapi');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -15,23 +17,27 @@ async function processActions(phone, responseText) {
   const actions = [];
 
   if (responseText.includes('[ENVIAR_APRESENTACAO]')) {
-    actions.push('enviar_docs');
+    actions.push('enviar_apresentacao');
+  }
+
+  if (responseText.includes('[ENVIAR_PLANO_NEGOCIOS]')) {
+    actions.push('enviar_plano');
   }
 
   if (responseText.includes('[TRANSFERIR_LEAD]')) {
     actions.push('transferir');
   }
 
-  // Remove as tags do texto antes de enviar
   const cleanText = responseText
     .replace(/\[ENVIAR_APRESENTACAO\]/g, '')
+    .replace(/\[ENVIAR_PLANO_NEGOCIOS\]/g, '')
     .replace(/\[TRANSFERIR_LEAD\]/g, '')
     .trim();
 
   return { cleanText, actions };
 }
 
-// Envia os materiais da franquia
+// Envia apresentação e vídeo (estágio inicial)
 async function sendMaterials(phone) {
   await sendText(phone, '📎 Vou te enviar os materiais agora. Um momento...');
 
@@ -43,6 +49,25 @@ async function sendMaterials(phone) {
 
   await new Promise(resolve => setTimeout(resolve, 1000));
   await sendText(phone, '✅ Materiais enviados! Qualquer dúvida sobre o que leu, pode perguntar aqui. 😊');
+}
+
+// Envia o Plano de Negócios (estágio avançado)
+async function sendBusinessPlan(phone) {
+  await sendText(phone, '📊 Vou te enviar o Plano de Negócios completo agora...');
+
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  try {
+    const filePath = path.join(__dirname, 'docs', 'plano-negocios.xlsx');
+    const buffer = fs.readFileSync(filePath);
+    const base64 = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${buffer.toString('base64')}`;
+    await sendDocumentBase64(phone, base64, 'PN_AE_Alugue_Estetica_ModStart.xlsx', '📊 Plano de Negócios — Módulo Start');
+  } catch (err) {
+    console.error('[Agent] Erro ao enviar plano de negócios:', err.message);
+    await sendText(phone, 'Tive um problema técnico ao enviar o arquivo. Pode pedir para nossa equipe te enviar diretamente. 🙏');
+  }
+
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  await sendText(phone, '✅ Plano de Negócios enviado! Quer que eu explique alguma projeção específica? 😊');
 }
 
 // Notifica o especialista sobre o lead quente
@@ -100,8 +125,12 @@ async function processMessage(phone, userMessage) {
     for (const action of actions) {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      if (action === 'enviar_docs') {
+      if (action === 'enviar_apresentacao') {
         await sendMaterials(phone);
+      }
+
+      if (action === 'enviar_plano') {
+        await sendBusinessPlan(phone);
       }
 
       if (action === 'transferir') {

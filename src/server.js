@@ -9,6 +9,8 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
+console.log('[Config] REDIS_URL:', process.env.REDIS_URL ? 'definido ✓' : 'INDEFINIDO ✗');
+
 // ============================================
 // WEBHOOK - Z-API envia mensagens aqui
 // ============================================

@@ -1,39 +1,42 @@
-// memory.js - Gerencia histórico de conversas em memória
-// Sem banco de dados — simples e funcional para começar
+const Redis = require('ioredis');
 
-const conversations = new Map();
-
-// Quantas mensagens manter no histórico por conversa
 const MAX_HISTORY = 20;
+const TTL_SECONDS = 60 * 60 * 24 * 7; // 7 dias
 
-function getHistory(phone) {
-  if (!conversations.has(phone)) {
-    conversations.set(phone, []);
-  }
-  return conversations.get(phone);
+const redis = new Redis(process.env.REDIS_URL);
+
+redis.on('error', (err) => console.error('[Memory] Redis error:', err.message));
+redis.on('connect', () => console.log('[Memory] Redis conectado'));
+
+function key(phone) {
+  return `conversation:${phone}`;
 }
 
-function addMessage(phone, role, content) {
-  const history = getHistory(phone);
+async function getHistory(phone) {
+  const data = await redis.get(key(phone));
+  return data ? JSON.parse(data) : [];
+}
+
+async function addMessage(phone, role, content) {
+  const history = await getHistory(phone);
   history.push({ role, content });
 
-  // Mantém só as últimas MAX_HISTORY mensagens para não explodir o contexto
   if (history.length > MAX_HISTORY) {
     history.splice(0, history.length - MAX_HISTORY);
   }
+
+  await redis.setex(key(phone), TTL_SECONDS, JSON.stringify(history));
 }
 
-function clearHistory(phone) {
-  conversations.delete(phone);
+async function clearHistory(phone) {
+  await redis.del(key(phone));
 }
 
-// Retorna um resumo do lead para handoff
-function getLeadSummary(phone) {
-  const history = getHistory(phone);
-  const messages = history
+async function getLeadSummary(phone) {
+  const history = await getHistory(phone);
+  return history
     .map(m => `${m.role === 'user' ? 'Lead' : 'Lia'}: ${m.content}`)
     .join('\n');
-  return messages;
 }
 
 module.exports = { getHistory, addMessage, clearHistory, getLeadSummary };

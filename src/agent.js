@@ -70,7 +70,7 @@ async function sendMaterials(phone) {
 async function notifySpecialist(phone, leadPhone) {
   const specialistPhone = process.env.SPECIALIST_PHONE;
   const specialistName = process.env.SPECIALIST_NAME || 'Consultor';
-  const summary = getLeadSummary(leadPhone);
+  const summary = await getLeadSummary(leadPhone);
 
   const notification = `🔥 *LEAD QUENTE - AE Alugue Estética*\n\n` +
     `📱 Contato: ${leadPhone}\n\n` +
@@ -86,9 +86,9 @@ async function processMessage(phone, userMessage) {
   console.log(`[Agent] Processando mensagem de ${phone}: ${userMessage.substring(0, 50)}...`);
 
   // Adiciona mensagem do usuário ao histórico
-  addMessage(phone, 'user', userMessage);
+  await addMessage(phone, 'user', userMessage);
 
-  const history = getHistory(phone);
+  const history = await getHistory(phone);
 
   try {
     // Chama o Claude com o histórico completo
@@ -103,7 +103,7 @@ async function processMessage(phone, userMessage) {
     const { cleanText, actions } = await processActions(phone, rawResponse);
 
     // Adiciona resposta ao histórico (sem as tags)
-    addMessage(phone, 'assistant', cleanText);
+    await addMessage(phone, 'assistant', cleanText);
 
     // Envia resposta principal
     if (cleanText) {

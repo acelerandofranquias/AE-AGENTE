@@ -3,7 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const { processMessage, transferToSpecialist } = require('./agent');
 const { checkConnection } = require('./zapi');
-const { isSpecialistActive, clearSpecialistActive } = require('./memory');
+const { isSpecialistActive, clearSpecialistActive, clearHistory } = require('./memory');
 
 const app = express();
 app.use(express.json());
@@ -126,6 +126,18 @@ app.get('/reativar/:phone', async (req, res) => {
   await clearSpecialistActive(phone);
   console.log(`[Server] Agente reativado para ${phone}`);
   res.send(`<h2>✅ Agente reativado para ${phone}</h2><p>O agente voltará a responder esse número.</p>`);
+});
+
+// ============================================
+// RESETAR LEAD COMPLETO (para testes)
+// GET /resetar/:phone — apaga histórico + flag de especialista
+// ============================================
+app.get('/resetar/:phone', async (req, res) => {
+  const { phone } = req.params;
+  await clearHistory(phone);
+  await clearSpecialistActive(phone);
+  console.log(`[Server] Lead ${phone} resetado para testes`);
+  res.send(`<h2>✅ Lead ${phone} resetado</h2><p>Histórico apagado e agente reativado. A próxima mensagem inicia uma conversa nova.</p>`);
 });
 
 // ============================================

@@ -57,7 +57,7 @@ async function sendBusinessPlan(phone) {
 
   await new Promise(resolve => setTimeout(resolve, 1500));
   try {
-    const filePath = path.join(__dirname, 'docs', 'plano-negocios.xlsx');
+    const filePath = path.join(__dirname, '..', 'docs', 'plano-negocios.xlsx');
     const buffer = fs.readFileSync(filePath);
     const base64 = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${buffer.toString('base64')}`;
     await sendDocumentBase64(phone, base64, 'PN_AE_Alugue_Estetica_ModStart.xlsx', '📊 Plano de Negócios — Módulo Start');

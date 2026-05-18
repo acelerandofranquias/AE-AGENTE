@@ -23,11 +23,8 @@ app.post('/webhook', async (req, res) => {
     // Log para debug — remove depois que estiver funcionando
     console.log('[Server] Webhook recebido:', JSON.stringify(body).substring(0, 200));
 
-    // Mensagem enviada pelo próprio número (especialista assumindo manualmente)
-    if (body.fromMe) {
-      if (body.phone) await setSpecialistActive(body.phone);
-      return;
-    }
+    // Ignora mensagens enviadas pelo próprio número
+    if (body.fromMe) return;
 
     // Ignora mensagens de grupos
     if (body.isGroup) return;
@@ -107,14 +104,22 @@ app.get('/health', async (req, res) => {
 });
 
 // ============================================
-// REATIVAR AGENTE PARA UM LEAD
-// POST /reativar/:phone
+// CONTROLE MANUAL DO AGENTE (abrir no navegador)
+// GET /pausar/:phone   — especialista assume, agente silencia
+// GET /reativar/:phone — agente volta a responder
 // ============================================
-app.post('/reativar/:phone', async (req, res) => {
+app.get('/pausar/:phone', async (req, res) => {
+  const { phone } = req.params;
+  await setSpecialistActive(phone);
+  console.log(`[Server] Agente pausado para ${phone}`);
+  res.send(`<h2>✅ Agente pausado para ${phone}</h2><p>O agente não vai mais responder a esse número. <a href="/reativar/${phone}">Clique aqui para reativar.</a></p>`);
+});
+
+app.get('/reativar/:phone', async (req, res) => {
   const { phone } = req.params;
   await clearSpecialistActive(phone);
   console.log(`[Server] Agente reativado para ${phone}`);
-  res.json({ status: 'ok', phone, message: 'Agente reativado para este lead' });
+  res.send(`<h2>✅ Agente reativado para ${phone}</h2><p>O agente voltará a responder esse número.</p>`);
 });
 
 // ============================================

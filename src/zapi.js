@@ -55,6 +55,27 @@ async function sendDocument(phone, fileUrl, fileName, caption = '') {
   }
 }
 
+// Envia documento via base64 (sem necessidade de hospedagem externa)
+async function sendDocumentBase64(phone, base64Data, fileName, caption = '') {
+  try {
+    const response = await axios.post(
+      `${BASE_URL}/send-document`,
+      {
+        phone: phone,
+        document: base64Data,
+        fileName: fileName,
+        caption: caption
+      },
+      { headers }
+    );
+    console.log(`[Z-API] Documento (base64) enviado para ${phone}: ${fileName}`);
+    return response.data;
+  } catch (error) {
+    console.error(`[Z-API] Erro ao enviar documento base64:`, error.response?.data || error.message);
+    throw error;
+  }
+}
+
 // Envia imagem via URL pública
 async function sendImage(phone, imageUrl, caption = '') {
   try {
@@ -121,4 +142,4 @@ async function checkConnection() {
   }
 }
 
-module.exports = { sendText, sendDocument, sendImage, sendAudio, sendVideo, checkConnection };
+module.exports = { sendText, sendDocument, sendDocumentBase64, sendImage, sendAudio, sendVideo, checkConnection };

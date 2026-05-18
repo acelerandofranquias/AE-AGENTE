@@ -1,31 +1,34 @@
 // agent.js - Lógica principal do agente Lia
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
 const { SYSTEM_PROMPT } = require('./prompt');
 const { getHistory, addMessage, getLeadSummary } = require('./memory');
-const { sendText, sendDocument, sendImage, sendAudio, sendVideo } = require('./zapi');
+const { sendText, sendDocumentBase64, sendImage, sendAudio, sendVideo } = require('./zapi');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// URLs dos documentos — coloca os links reais aqui quando tiveres
-// Podes hospedar no Google Drive, Dropbox ou qualquer storage público
-const DOCUMENTS = {
-  apresentacao: {
-    url: 'https://SEU_STORAGE/apresentacao-ae-alugue-estetica.pdf',
+const DOCS_DIR = path.join(__dirname, 'docs');
+
+// PDFs ficam em src/docs/ — adicione os arquivos lá e faça push
+const DOCUMENTS = [
+  {
+    file: 'apresentacao.pdf',
     name: 'Apresentacao_AE_Alugue_Estetica.pdf',
     caption: '📋 Apresentação completa da AE Alugue Estética'
   },
-  planoNegocios: {
-    url: 'https://SEU_STORAGE/plano-de-negocios-ae.pdf',
+  {
+    file: 'plano-negocios.pdf',
     name: 'Plano_de_Negocios_AE.pdf',
     caption: '📊 Plano de Negócios com projeções financeiras'
   },
-  cof: {
-    url: 'https://SEU_STORAGE/cof-ae-alugue-estetica.pdf',
+  {
+    file: 'cof.pdf',
     name: 'COF_AE_Alugue_Estetica.pdf',
     caption: '📄 Circular de Oferta de Franquia (documento oficial)'
   }
-};
+];
 
 // Processa as tags de ação que o Claude inclui nas respostas
 async function processActions(phone, responseText) {
@@ -52,13 +55,15 @@ async function processActions(phone, responseText) {
 async function sendMaterials(phone) {
   await sendText(phone, '📎 Vou te enviar os materiais agora. Um momento...');
 
-  // Pequeno delay entre envios para não parecer spam
-  for (const [key, doc] of Object.entries(DOCUMENTS)) {
+  for (const doc of DOCUMENTS) {
     await new Promise(resolve => setTimeout(resolve, 1500));
     try {
-      await sendDocument(phone, doc.url, doc.name, doc.caption);
+      const filePath = path.join(DOCS_DIR, doc.file);
+      const buffer = fs.readFileSync(filePath);
+      const base64 = `data:application/pdf;base64,${buffer.toString('base64')}`;
+      await sendDocumentBase64(phone, base64, doc.name, doc.caption);
     } catch (err) {
-      console.error(`[Agent] Erro ao enviar ${key}:`, err.message);
+      console.error(`[Agent] Erro ao enviar ${doc.file}:`, err.message);
     }
   }
 

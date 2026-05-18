@@ -97,7 +97,7 @@ async function processMessage(phone, userMessage) {
   try {
     // Chama o Claude com o histórico completo
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: history

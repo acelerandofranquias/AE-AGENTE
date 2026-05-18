@@ -1,7 +1,7 @@
 const Redis = require('ioredis');
 
 const MAX_HISTORY = 20;
-const TTL_SECONDS = 60 * 60 * 24 * 7; // 7 dias
+const TTL_SECONDS = 60 * 60 * 24 * 20; // 20 dias
 
 const redis = new Redis(process.env.REDIS_URL);
 

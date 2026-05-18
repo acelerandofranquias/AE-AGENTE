@@ -23,8 +23,14 @@ app.post('/webhook', async (req, res) => {
     // Log para debug — remove depois que estiver funcionando
     console.log('[Server] Webhook recebido:', JSON.stringify(body).substring(0, 200));
 
-    // Ignora mensagens enviadas pelo próprio número
-    if (body.fromMe) return;
+    // Mensagem enviada pelo próprio número = especialista assumiu
+    if (body.fromMe) {
+      if (body.phone) {
+        await setSpecialistActive(body.phone);
+        console.log(`[Server] Especialista detectado para ${body.phone} — agente silenciado`);
+      }
+      return;
+    }
 
     // Ignora mensagens de grupos
     if (body.isGroup) return;

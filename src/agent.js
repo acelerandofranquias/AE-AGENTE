@@ -57,10 +57,10 @@ async function sendBusinessPlan(phone) {
 
   await new Promise(resolve => setTimeout(resolve, 1500));
   try {
-    const filePath = path.join(__dirname, '..', 'docs', 'plano-negocios.xlsx');
+    const filePath = path.join(__dirname, '..', 'docs', 'plano-negocios.pdf');
     const buffer = fs.readFileSync(filePath);
-    const base64 = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${buffer.toString('base64')}`;
-    await sendDocumentBase64(phone, base64, 'PN_AE_Alugue_Estetica_ModStart.xlsx', '📊 Plano de Negócios — Módulo Start');
+    const base64 = `data:application/pdf;base64,${buffer.toString('base64')}`;
+    await sendDocumentBase64(phone, base64, 'PN_AE_Alugue_Estetica_ModStart.pdf', '📊 Plano de Negócios — Módulo Start');
   } catch (err) {
     console.error('[Agent] Erro ao enviar plano de negócios:', err.message);
     await sendText(phone, 'Tive um problema técnico ao enviar o arquivo. Pode pedir para nossa equipe te enviar diretamente. 🙏');

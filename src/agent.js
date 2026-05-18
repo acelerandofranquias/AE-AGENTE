@@ -1,34 +1,14 @@
 // agent.js - Lógica principal do agente Lia
 require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
 const { SYSTEM_PROMPT } = require('./prompt');
 const { getHistory, addMessage, getLeadSummary } = require('./memory');
-const { sendText, sendDocumentBase64, sendImage, sendAudio, sendVideo } = require('./zapi');
+const { sendText, sendImage, sendAudio, sendVideo } = require('./zapi');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const DOCS_DIR = path.join(__dirname, 'docs');
-
-// PDFs ficam em src/docs/ — adicione os arquivos lá e faça push
-const DOCUMENTS = [
-  {
-    file: 'apresentacao.pdf',
-    name: 'Apresentacao_AE_Alugue_Estetica.pdf',
-    caption: '📋 Apresentação completa da AE Alugue Estética'
-  },
-  {
-    file: 'plano-negocios.pdf',
-    name: 'Plano_de_Negocios_AE.pdf',
-    caption: '📊 Plano de Negócios com projeções financeiras'
-  },
-  {
-    file: 'cof.pdf',
-    name: 'COF_AE_Alugue_Estetica.pdf',
-    caption: '📄 Circular de Oferta de Franquia (documento oficial)'
-  }
-];
+const MATERIALS_URL = 'https://franquias.acelerandofranquias.com.br/alugue-estetica-franquia-qualificacao';
+const VIDEO_URL = 'https://youtube.com/shorts/igQXnjOZokc?si=IMTLyabDjUxVDFm5';
 
 // Processa as tags de ação que o Claude inclui nas respostas
 async function processActions(phone, responseText) {
@@ -55,17 +35,11 @@ async function processActions(phone, responseText) {
 async function sendMaterials(phone) {
   await sendText(phone, '📎 Vou te enviar os materiais agora. Um momento...');
 
-  for (const doc of DOCUMENTS) {
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    try {
-      const filePath = path.join(DOCS_DIR, doc.file);
-      const buffer = fs.readFileSync(filePath);
-      const base64 = `data:application/pdf;base64,${buffer.toString('base64')}`;
-      await sendDocumentBase64(phone, base64, doc.name, doc.caption);
-    } catch (err) {
-      console.error(`[Agent] Erro ao enviar ${doc.file}:`, err.message);
-    }
-  }
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  await sendText(phone, `📋 Aqui está a apresentação completa da AE Alugue Estética:\n${MATERIALS_URL}`);
+
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  await sendText(phone, `🎥 E esse vídeo mostra como funciona na prática:\n${VIDEO_URL}`);
 
   await new Promise(resolve => setTimeout(resolve, 1000));
   await sendText(phone, '✅ Materiais enviados! Qualquer dúvida sobre o que leu, pode perguntar aqui. 😊');

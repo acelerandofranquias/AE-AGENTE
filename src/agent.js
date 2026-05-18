@@ -70,19 +70,23 @@ async function sendBusinessPlan(phone) {
   await sendText(phone, '✅ Plano de Negócios enviado! Quer que eu explique alguma projeção específica? 😊');
 }
 
-// Notifica o especialista sobre o lead quente
-async function notifySpecialist(phone, leadPhone) {
+// Notifica o especialista sobre o lead quente com resumo completo da conversa
+async function notifySpecialist(leadPhone) {
   const specialistPhone = process.env.SPECIALIST_PHONE;
   const specialistName = process.env.SPECIALIST_NAME || 'Consultor';
   const summary = await getLeadSummary(leadPhone);
 
-  const notification = `🔥 *LEAD QUENTE - AE Alugue Estética*\n\n` +
-    `📱 Contato: ${leadPhone}\n\n` +
-    `📝 *Resumo da conversa:*\n${summary.substring(0, 1500)}...\n\n` +
-    `⚡ Lead qualificado pela Lia e pronto para atendimento especializado!`;
+  const hora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+
+  const notification =
+    `🔥 *LEAD QUENTE — ${process.env.BRAND_NAME || 'Alugue Estética'}*\n\n` +
+    `📱 *Contato:* ${leadPhone}\n` +
+    `🕐 *Transferido em:* ${hora}\n\n` +
+    `📝 *Histórico completo da conversa:*\n\n${summary}\n\n` +
+    `---\n⚡ Lead qualificado pelo agente. Pronto para atendimento.`;
 
   await sendText(specialistPhone, notification);
-  console.log(`[Agent] Especialista ${specialistName} notificado sobre lead ${leadPhone}`);
+  console.log(`[Agent] Especialista ${specialistName} notificado — lead ${leadPhone}`);
 }
 
 // Função principal — processa mensagem do lead
@@ -134,12 +138,19 @@ async function processMessage(phone, userMessage) {
       }
 
       if (action === 'transferir') {
-        await notifySpecialist(phone, phone);
-        await sendText(phone,
-          `✨ Já avisei nosso consultor especialista sobre nossa conversa! ` +
-          `Ele vai entrar em contato em breve para continuar o atendimento. ` +
-          `Qualquer coisa, pode chamar aqui também! 😊`
-        );
+        await notifySpecialist(phone);
+        if (isBusinessHours()) {
+          await sendText(phone,
+            `✨ Já avisei nosso especialista sobre nossa conversa!\n` +
+            `Ele vai entrar em contato em breve. 😊`
+          );
+        } else {
+          await sendText(phone,
+            `✨ Já avisei nosso especialista!\n\n` +
+            `Nosso horário de atendimento é de segunda a sexta, das 8h às 18h. ` +
+            `Ele vai entrar em contato ${nextBusinessDayMessage()}. 😊`
+          );
+        }
       }
     }
 
@@ -149,6 +160,23 @@ async function processMessage(phone, userMessage) {
       'Desculpe, tive um problema técnico agora. Pode repetir sua mensagem? 🙏'
     );
   }
+}
+
+// Verifica horário comercial (seg-sex 8h-18h, fuso Brasília UTC-3)
+function isBusinessHours() {
+  const now = new Date();
+  const brasilia = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  const hour = brasilia.getUTCHours();
+  const day = brasilia.getUTCDay(); // 0=dom, 6=sáb
+  return day >= 1 && day <= 5 && hour >= 8 && hour < 18;
+}
+
+function nextBusinessDayMessage() {
+  const now = new Date();
+  const brasilia = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  const day = brasilia.getUTCDay();
+  if (day === 5 || day === 6) return 'na segunda-feira a partir das 8h';
+  return 'amanhã a partir das 8h';
 }
 
 // Divide mensagens longas em partes menores (máx 1000 chars)

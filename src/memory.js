@@ -1,7 +1,8 @@
 const Redis = require('ioredis');
 
-const MAX_HISTORY = 20;
-const TTL_SECONDS = 60 * 60 * 24 * 20; // 20 dias
+const MAX_HISTORY = 50;
+const TTL_SECONDS = 60 * 60 * 24 * 30; // 30 dias
+const SPECIALIST_TTL = 60 * 60 * 24 * 7; // 7 dias
 
 const redis = new Redis(process.env.REDIS_URL);
 
@@ -39,4 +40,21 @@ async function getLeadSummary(phone) {
     .join('\n');
 }
 
-module.exports = { getHistory, addMessage, clearHistory, getLeadSummary };
+function specialistKey(phone) {
+  return `specialist_active:${phone}`;
+}
+
+async function isSpecialistActive(phone) {
+  const val = await redis.exists(specialistKey(phone));
+  return val === 1;
+}
+
+async function setSpecialistActive(phone) {
+  await redis.setex(specialistKey(phone), SPECIALIST_TTL, '1');
+}
+
+async function clearSpecialistActive(phone) {
+  await redis.del(specialistKey(phone));
+}
+
+module.exports = { getHistory, addMessage, clearHistory, getLeadSummary, isSpecialistActive, setSpecialistActive, clearSpecialistActive };

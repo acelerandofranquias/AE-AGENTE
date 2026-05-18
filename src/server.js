@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const { processMessage } = require('./agent');
 const { checkConnection } = require('./zapi');
+const { isSpecialistActive, setSpecialistActive, clearSpecialistActive } = require('./memory');
 
 const app = express();
 app.use(express.json());
@@ -22,8 +23,11 @@ app.post('/webhook', async (req, res) => {
     // Log para debug — remove depois que estiver funcionando
     console.log('[Server] Webhook recebido:', JSON.stringify(body).substring(0, 200));
 
-    // Ignora mensagens enviadas pelo próprio bot
-    if (body.fromMe) return;
+    // Mensagem enviada pelo próprio número (especialista assumindo manualmente)
+    if (body.fromMe) {
+      if (body.phone) await setSpecialistActive(body.phone);
+      return;
+    }
 
     // Ignora mensagens de grupos
     if (body.isGroup) return;
@@ -34,10 +38,16 @@ app.post('/webhook', async (req, res) => {
     // Z-API envia o número já formatado
     const phone = body.phone;
 
-    // Ignora números bloqueados (leads já em atendimento humano)
+    // Ignora números bloqueados (env BLOCKED_PHONES)
     const blockedPhones = (process.env.BLOCKED_PHONES || '').split(',').map(n => n.trim()).filter(Boolean);
     if (blockedPhones.includes(phone)) {
       console.log(`[Server] Número bloqueado ignorado: ${phone}`);
+      return;
+    }
+
+    // Especialista já assumiu — agente silencia para esse lead
+    if (await isSpecialistActive(phone)) {
+      console.log(`[Server] Especialista ativo para ${phone} — agente silenciado`);
       return;
     }
 
@@ -94,6 +104,17 @@ app.get('/health', async (req, res) => {
     whatsapp: connection?.state || 'unknown',
     timestamp: new Date().toISOString()
   });
+});
+
+// ============================================
+// REATIVAR AGENTE PARA UM LEAD
+// POST /reativar/:phone
+// ============================================
+app.post('/reativar/:phone', async (req, res) => {
+  const { phone } = req.params;
+  await clearSpecialistActive(phone);
+  console.log(`[Server] Agente reativado para ${phone}`);
+  res.json({ status: 'ok', phone, message: 'Agente reativado para este lead' });
 });
 
 // ============================================

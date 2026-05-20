@@ -21,7 +21,7 @@ app.post('/webhook', async (req, res) => {
     const body = req.body;
 
     // Log para debug — remove depois que estiver funcionando
-    console.log('[Server] Webhook recebido:', JSON.stringify(body).substring(0, 200));
+    console.log('[Server] Webhook recebido:', JSON.stringify(body).substring(0, 200), '| deploy-test');
 
     // Mensagem enviada pelo próprio número = especialista assumiu
     if (body.fromMe) {

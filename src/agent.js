@@ -26,13 +26,18 @@ async function processActions(phone, responseText) {
     actions.push('transferir');
   }
 
+  // Extrai o bloco [HANDOFF] antes de limpar (usado na notificação ao especialista)
+  const handoffMatch = responseText.match(/\[HANDOFF\]([\s\S]*?)\[\/HANDOFF\]/);
+  const handoffBlock = handoffMatch ? handoffMatch[1].trim() : null;
+
   const cleanText = responseText
+    .replace(/\[HANDOFF\][\s\S]*?\[\/HANDOFF\]/g, '')
     .replace(/\[ENVIAR_APRESENTACAO\]/g, '')
     .replace(/\[ENVIAR_VIDEO\]/g, '')
     .replace(/\[TRANSFERIR_LEAD\]/g, '')
     .trim();
 
-  return { cleanText, actions };
+  return { cleanText, actions, handoffBlock };
 }
 
 // Envia os materiais oficiais (link da franqueadora)
@@ -47,22 +52,27 @@ async function sendVideo(phone) {
   await sendText(phone, `Esse vídeo mostra como funciona na prática 👇\n${VIDEO_URL}`);
 }
 
-// Envia resumo compacto ao especialista e silencia o agente para esse lead
-async function transferToSpecialist(leadPhone) {
+// Envia resumo ao especialista e silencia o agente para esse lead
+async function transferToSpecialist(leadPhone, handoffBlock = null) {
   const specialistPhone = process.env.SPECIALIST_PHONE;
   if (!specialistPhone) {
     console.error('[Agent] SPECIALIST_PHONE não configurado');
     return;
   }
 
-  const summary = await getLeadSummary(leadPhone, 10);
   const hora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
-  const notification =
+  let notification =
     `🔥 *LEAD — ${process.env.BRAND_NAME || 'Alugue Estética'}*\n\n` +
     `📱 *Contato:* wa.me/${leadPhone}\n` +
-    `🕐 *Transferido:* ${hora}\n\n` +
-    `💬 *Últimas mensagens:*\n\n${summary}`;
+    `🕐 *Transferido:* ${hora}\n\n`;
+
+  if (handoffBlock) {
+    notification += `📋 *Resumo do lead:*\n${handoffBlock}`;
+  } else {
+    const summary = await getLeadSummary(leadPhone, 10);
+    notification += `💬 *Últimas mensagens:*\n\n${summary}`;
+  }
 
   await sendText(specialistPhone, notification);
   await setSpecialistActive(leadPhone);
@@ -88,7 +98,7 @@ async function processMessage(phone, userMessage) {
     });
 
     const rawResponse = response.content[0].text;
-    const { cleanText, actions } = await processActions(phone, rawResponse);
+    const { cleanText, actions, handoffBlock } = await processActions(phone, rawResponse);
 
     // Adiciona resposta ao histórico (sem as tags)
     await addMessage(phone, 'assistant', cleanText);
@@ -130,7 +140,7 @@ async function processMessage(phone, userMessage) {
             `Ele vai entrar em contato ${nextBusinessDayMessage()}. 😊`
           );
         }
-        await transferToSpecialist(phone);
+        await transferToSpecialist(phone, handoffBlock);
       }
     }
 

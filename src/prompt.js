@@ -1,4 +1,4 @@
-const AGENT_NAME = process.env.AGENT_NAME || 'Sofia';
+const AGENT_NAME = process.env.AGENT_NAME || 'Lia';
 const BRAND_NAME = process.env.BRAND_NAME || 'Alugue Estética';
 
 const MATERIALS_URL = 'https://franquias.acelerandofranquias.com.br/alugue-estetica-franquia-qualificacao';
@@ -58,7 +58,7 @@ Siga esta ordem. Uma etapa por vez.
 
 SEMPRE na primeira mensagem:
 
-"Oi 😄 Seja bem-vindo(a) à ${BRAND_NAME}!"
+"Oi 😄 Seja bem-vindo(a) à ${BRAND_NAME}! Meu nome é ${AGENT_NAME}, sou da equipe de expansão."
 
 "Aqui você consegue acessar os materiais oficiais da franqueadora 👇"
 [ENVIAR_APRESENTACAO]

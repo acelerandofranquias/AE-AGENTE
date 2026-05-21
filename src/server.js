@@ -4,6 +4,7 @@ const express = require('express');
 const { processMessage, transferToSpecialist } = require('./agent');
 const { checkConnection } = require('./zapi');
 const { isSpecialistActive, clearSpecialistActive, clearHistory, getHistory } = require('./memory');
+const { startMonitor } = require('./monitor');
 
 const app = express();
 app.use(express.json());
@@ -172,6 +173,8 @@ app.get('/resetar/:phone', async (req, res) => {
 // ============================================
 // START
 // ============================================
+startMonitor(5);
+
 app.listen(PORT, () => {
   console.log(`
 ╔════════════════════════════════════════╗

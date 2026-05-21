@@ -3,7 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const { processMessage, transferToSpecialist } = require('./agent');
 const { checkConnection } = require('./zapi');
-const { isSpecialistActive, clearSpecialistActive, clearHistory } = require('./memory');
+const { isSpecialistActive, clearSpecialistActive, clearHistory, getHistory } = require('./memory');
 
 const app = express();
 app.use(express.json());
@@ -126,6 +126,35 @@ app.get('/reativar/:phone', async (req, res) => {
   await clearSpecialistActive(phone);
   console.log(`[Server] Agente reativado para ${phone}`);
   res.send(`<h2>✅ Agente reativado para ${phone}</h2><p>O agente voltará a responder esse número.</p>`);
+});
+
+// ============================================
+// VER HISTÓRICO DE CONVERSA
+// GET /historico/:phone
+// ============================================
+app.get('/historico/:phone', async (req, res) => {
+  const { phone } = req.params;
+  const history = await getHistory(phone);
+
+  if (!history.length) {
+    return res.send(`<h2>Sem histórico para ${phone}</h2>`);
+  }
+
+  const linhas = history.map((m, i) => {
+    const autor = m.role === 'user' ? '👤 Lead' : '🤖 Lia';
+    const cor = m.role === 'user' ? '#f0f0f0' : '#dcf8c6';
+    return `<div style="background:${cor};padding:10px;margin:6px 0;border-radius:8px;">
+      <strong>${i + 1}. ${autor}</strong><br>${m.content.replace(/\n/g, '<br>')}
+    </div>`;
+  }).join('');
+
+  res.send(`
+    <html><body style="font-family:sans-serif;max-width:700px;margin:auto;padding:20px">
+    <h2>Histórico — ${phone}</h2>
+    <p>${history.length} mensagens</p>
+    ${linhas}
+    </body></html>
+  `);
 });
 
 // ============================================
